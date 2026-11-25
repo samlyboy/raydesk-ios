@@ -26,8 +26,12 @@ class ScrollRing extends StatefulWidget {
 class _ScrollRingState extends State<ScrollRing> {
   static const int _dotCount = 60;
   static const double _stepAngle = 2 * pi / _dotCount;
+  static const double _arrowSize = 44.0;
+  static const double _arrowGap = 8.0;
+  static const double _arrowSpacing = 12.0;
 
   bool _open = false;
+  bool _ignorePointerUp = false;
   double? _lastAngle;
   double _pointerAngle = -pi / 2;
 
@@ -69,7 +73,49 @@ class _ScrollRingState extends State<ScrollRing> {
   double _rawAngle(Offset point, Offset center) =>
       atan2(point.dy - center.dy, point.dx - center.dx);
 
+  /// 上/下键的点击区域：圆环右侧，两个 _arrowSize 圆按钮，间隔 _arrowSpacing。
+  /// 按钮中心 x = center.x + radius + 12(半环宽) + _arrowGap + _arrowSize/2
+  List<Rect> _arrowRects(Offset center, double radius) {
+    final left = center.dx + radius + 12 + _arrowGap;
+    final top = center.dy - _arrowSize - _arrowSpacing / 2;
+    return [
+      Rect.fromLTWH(left, top, _arrowSize, _arrowSize),
+      Rect.fromLTWH(left, top + _arrowSize + _arrowSpacing, _arrowSize, _arrowSize),
+    ];
+  }
+
+  bool _onArrow(Offset p, Offset center, double radius) =>
+      _arrowRects(center, radius).any((r) => r.contains(p));
+
+  void _sendArrowKey(String name) {
+    widget.ffi.inputModel.inputKey(name);
+  }
+
+  Widget _arrowButton(IconData icon, String keyName, Offset center, double radius) {
+    final rect = _arrowRects(center, radius)[keyName == 'VK_UP' ? 0 : 1];
+    return Positioned(
+      left: rect.left,
+      top: rect.top,
+      width: _arrowSize,
+      height: _arrowSize,
+      child: IgnorePointer(
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.grey.shade600,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white, size: 26),
+        ),
+      ),
+    );
+  }
+
   void _onDown(PointerDownEvent e, Offset center, double radius) {
+    if (_onArrow(e.position, center, radius)) {
+      _ignorePointerUp = true;
+      return;
+    }
+    _ignorePointerUp = false;
     final distance = (e.position - center).distance;
     if ((distance - radius).abs() > 47) {
       _hide();
@@ -114,8 +160,20 @@ class _ScrollRingState extends State<ScrollRing> {
         behavior: HitTestBehavior.opaque,
         onPointerDown: (e) => _onDown(e, center, radius),
         onPointerMove: (e) => _onMove(e, center),
-        onPointerUp: (_) => _hide(),
-        onPointerCancel: (_) => _hide(),
+        onPointerUp: (e) {
+          if (_ignorePointerUp) {
+            _ignorePointerUp = false;
+            if (_onArrow(e.position, center, radius)) {
+              _sendArrowKey(e.position.dy < center.dy ? 'VK_UP' : 'VK_DOWN');
+            }
+            return;
+          }
+          _hide();
+        },
+        onPointerCancel: (_) {
+          _ignorePointerUp = false;
+          _hide();
+        },
         child: Stack(
           children: [
             const Positioned.fill(
@@ -132,6 +190,8 @@ class _ScrollRingState extends State<ScrollRing> {
                 ),
               ),
             ),
+            _arrowButton(Icons.keyboard_arrow_up, 'VK_UP', center, radius),
+            _arrowButton(Icons.keyboard_arrow_down, 'VK_DOWN', center, radius),
           ],
         ),
       ),
