@@ -32,6 +32,7 @@ class _ScrollRingState extends State<ScrollRing> {
 
   bool _open = false;
   bool _ignorePointerUp = false;
+  String? _pressedArrowKey;
   double? _lastAngle;
   double _pointerAngle = -pi / 2;
 
@@ -111,11 +112,19 @@ class _ScrollRingState extends State<ScrollRing> {
   }
 
   void _onDown(PointerDownEvent e, Offset center, double radius) {
-    if (_onArrow(e.position, center, radius)) {
+    final arrows = _arrowRects(center, radius);
+    if (arrows[0].contains(e.position)) {
       _ignorePointerUp = true;
+      _pressedArrowKey = 'VK_UP';
+      return;
+    }
+    if (arrows[1].contains(e.position)) {
+      _ignorePointerUp = true;
+      _pressedArrowKey = 'VK_DOWN';
       return;
     }
     _ignorePointerUp = false;
+    _pressedArrowKey = null;
     final distance = (e.position - center).distance;
     if ((distance - radius).abs() > 47) {
       _hide();
@@ -162,9 +171,13 @@ class _ScrollRingState extends State<ScrollRing> {
         onPointerMove: (e) => _onMove(e, center),
         onPointerUp: (e) {
           if (_ignorePointerUp) {
+            final key = _pressedArrowKey;
             _ignorePointerUp = false;
-            if (_onArrow(e.position, center, radius)) {
-              _sendArrowKey(e.position.dy < center.dy ? 'VK_UP' : 'VK_DOWN');
+            _pressedArrowKey = null;
+            // 只在按下的同一个按钮内抬起才发送，防止误触。
+            if (key != null && _onArrow(e.position, center, radius)) {
+              final expected = e.position.dy < center.dy ? 'VK_UP' : 'VK_DOWN';
+              if (key == expected) _sendArrowKey(key);
             }
             return;
           }
@@ -172,6 +185,7 @@ class _ScrollRingState extends State<ScrollRing> {
         },
         onPointerCancel: (_) {
           _ignorePointerUp = false;
+          _pressedArrowKey = null;
           _hide();
         },
         child: Stack(
