@@ -73,3 +73,11 @@ jobs:
             ./flutter/lib/generated_bridge.freezed.dart
             ./flutter/macos/Runner/bridge_generated.h
             ./flutter/ios/Runner/bridge_generated.h
+
+  build-ios:
+    name: Build RayDesk IPA (arm64)
+    needs: generate-bridge
+    runs-on: macos-15
+    steps:
+      - name: Test
+        run: echo build
