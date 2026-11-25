@@ -18,6 +18,42 @@ enum PeerTabIndex {
   group,
 }
 
+/// 手动排序模式（仅移动端列表使用）。进入后长按拖拽机器卡片即可排序，
+/// 普通长按仍是多选。开关走三点菜单，顺序按 tab 存本地配置。
+final RxBool peerManualSortMode = false.obs;
+
+/// 顺序/模式变更版本号，变更时触发机器列表重建
+final RxString peerOrderRevision = '0'.obs;
+
+void bumpPeerOrderRevision() {
+  peerOrderRevision.value =
+      ((int.tryParse(peerOrderRevision.value) ?? 0) + 1).toString();
+}
+
+String _peerOrderKey(PeerTabIndex tab) =>
+    '${kOptionPeerCustomOrderPrefix}${tab.name}';
+
+/// 读取某个 tab 的自定义机器顺序（peer.id 列表）；无自定义返回空。
+List<String> getPeerCustomOrder(PeerTabIndex tab) {
+  try {
+    final option = bind.getLocalFlutterOption(k: _peerOrderKey(tab));
+    if (option.isEmpty) return const <String>[];
+    final decoded = jsonDecode(option);
+    if (decoded is List) {
+      return decoded.map((e) => e.toString()).toList();
+    }
+  } catch (e) {
+    debugPrint('failed to get peer custom order: $e');
+  }
+  return const <String>[];
+}
+
+/// 保存某个 tab 的自定义顺序。
+void setPeerCustomOrder(PeerTabIndex tab, List<String> ids) {
+  bind.setLocalFlutterOption(k: _peerOrderKey(tab), v: jsonEncode(ids));
+  bumpPeerOrderRevision();
+}
+
 class PeerTabModel with ChangeNotifier {
   WeakReference<FFI> parent;
   int get currentTab => _currentTab;
