@@ -2609,7 +2609,8 @@ connect(BuildContext context, String id,
     String? password,
     String? connToken,
     bool? isSharedPassword,
-    String loginMethod = ''}) async {
+    String loginMethod = '',
+    String autoPowerAction = ''}) async {
   if (id == '') return;
   if (!isDesktop || desktopType == DesktopType.main) {
     try {
@@ -2725,6 +2726,7 @@ connect(BuildContext context, String id,
             password: password,
             isSharedPassword: isSharedPassword,
             forceRelay: forceRelay,
+            autoPowerAction: autoPowerAction,
           ),
         ),
       );
@@ -2752,7 +2754,8 @@ connect(BuildContext context, String id,
                 loginMethod: loginMethod,
                 password: password,
                 isSharedPassword: isSharedPassword,
-                forceRelay: forceRelay),
+                forceRelay: forceRelay,
+                autoPowerAction: autoPowerAction),
           ),
         );
       }
