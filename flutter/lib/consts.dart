@@ -162,6 +162,10 @@ const String kOptionAllowMultiEdgeToolbarDock =
     "allow-multi-edge-toolbar-dock";
 const String kOptionHideAbTagsPanel = "hideAbTagsPanel";
 const String kOptionRemoteMenubarState = "remoteMenubarState";
+// 列表菜单「关机/重启」自动动作值（connect(autoPowerAction: ...)）
+const String kPowerActionRestart = "power-restart";
+const String kPowerActionShutdown = "power-shutdown";
+
 const String kOptionPeerSorting = "peer-sorting";
 const String kOptionPeerCustomOrderPrefix = "peer-custom-order-";
 const String kOptionPeerTabIndex = "peer-tab-index";
