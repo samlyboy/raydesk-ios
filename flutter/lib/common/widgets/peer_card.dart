@@ -79,7 +79,8 @@ class _PeerCardState extends State<_PeerCard>
             }
           }
         },
-        onLongPress: () => peerTabModel.select(peer),
+        // 排序模式下长按交给 ReorderableListView 拖拽，避免误进多选
+        onLongPress: peerManualSortMode.value ? null : () => peerTabModel.select(peer),
         child: child);
   }
 
@@ -558,16 +559,35 @@ abstract class BasePeerCard extends StatelessWidget {
   }
 
   Future<List<mod_menu.PopupMenuEntry<String>>> _buildPopupMenuEntry(
-          BuildContext context) async =>
-      (await _buildMenuItems(context))
-          .map((e) => e.build(
-              context,
-              const MenuConfig(
-                  commonColor: CustomPopupMenuTheme.commonColor,
-                  height: CustomPopupMenuTheme.height,
-                  dividerHeight: CustomPopupMenuTheme.dividerHeight)))
-          .expand((i) => i)
-          .toList();
+          BuildContext context) async {
+    final items = <MenuEntryBase<String>>[];
+    if (isMobile) {
+      items.add(MenuEntryButton<String>(
+        childBuilder: (TextStyle? style) => Text(
+          peerManualSortMode.value ? '退出排序模式' : '排序模式',
+          style: style,
+        ),
+        proc: () {
+          peerManualSortMode.value = !peerManualSortMode.value;
+          bumpPeerOrderRevision();
+          showToast(peerManualSortMode.value ? '长按机器拖动排序' : '已退出排序模式');
+        },
+        padding: menuPadding,
+        dismissOnClicked: true,
+      ));
+      items.add(MenuEntryDivider<String>());
+    }
+    items.addAll(await _buildMenuItems(context));
+    return items
+        .map((e) => e.build(
+            context,
+            const MenuConfig(
+                commonColor: CustomPopupMenuTheme.commonColor,
+                height: CustomPopupMenuTheme.height,
+                dividerHeight: CustomPopupMenuTheme.dividerHeight)))
+        .expand((i) => i)
+        .toList();
+  }
 
   @protected
   Future<List<MenuEntryBase<String>>> _buildMenuItems(BuildContext context);
