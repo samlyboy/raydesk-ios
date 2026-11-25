@@ -10,8 +10,14 @@ const Color _accent = Color(0xFFFFA726);
 /// Clockwise sends mouse-wheel-down, counter-clockwise sends mouse-wheel-up.
 class ScrollRing extends StatefulWidget {
   final FFI ffi;
+  /// 每次自增触发打开；按钮在底部工具栏，控件本身不绘制按钮。
+  final ValueNotifier<int> openSignal;
 
-  const ScrollRing({super.key, required this.ffi});
+  const ScrollRing({
+    super.key,
+    required this.ffi,
+    required this.openSignal,
+  });
 
   @override
   State<ScrollRing> createState() => _ScrollRingState();
@@ -24,6 +30,16 @@ class _ScrollRingState extends State<ScrollRing> {
   bool _open = false;
   double? _lastAngle;
   double _pointerAngle = -pi / 2;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.openSignal.addListener(_onOpenSignal);
+  }
+
+  void _onOpenSignal() {
+    if (!_open) _show();
+  }
 
   void _show() {
     setState(() {
@@ -45,6 +61,7 @@ class _ScrollRingState extends State<ScrollRing> {
 
   @override
   void dispose() {
+    widget.openSignal.removeListener(_onOpenSignal);
     if (_open) widget.ffi.cursorModel.blockEvents = false;
     super.dispose();
   }
@@ -54,7 +71,7 @@ class _ScrollRingState extends State<ScrollRing> {
 
   void _onDown(PointerDownEvent e, Offset center, double radius) {
     final distance = (e.position - center).distance;
-    if ((distance - radius).abs() > 70) {
+    if ((distance - radius).abs() > 47) {
       _hide();
       return;
     }
@@ -87,31 +104,10 @@ class _ScrollRingState extends State<ScrollRing> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final center = Offset(size.width / 2, max(180.0, size.height - 280));
-    final radius = min(96.0, max(64.0, size.width * 0.2));
+    // 圆环缩到原来的 2/3：原 min(96, max(64, w*0.2))
+    final radius = min(64.0, max(42.0, size.width * (0.2 * 2 / 3)));
 
-    if (!_open) {
-      return Positioned(
-        right: 14,
-        bottom: 88,
-        child: Semantics(
-          button: true,
-          label: '滚轮圆环',
-          child: GestureDetector(
-            onTap: _show,
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xCC424242),
-                shape: BoxShape.circle,
-                border: Border.all(color: _accent, width: 2),
-              ),
-              child: const Icon(Icons.rotate_right, color: _accent, size: 28),
-            ),
-          ),
-        ),
-      );
-    }
+    if (!_open) return const SizedBox.shrink();
 
     return Positioned.fill(
       child: Listener(
@@ -167,13 +163,13 @@ class _ScrollRingPainter extends CustomPainter {
     final ring = Paint()
       ..color = Colors.grey.shade600
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 18;
+      ..strokeWidth = 12;
     canvas.drawCircle(center, radius, ring);
 
     final dot = Paint()..color = _accent;
     canvas.drawCircle(
       center + Offset(radius * cos(angle), radius * sin(angle)),
-      14,
+      9,
       dot,
     );
   }
