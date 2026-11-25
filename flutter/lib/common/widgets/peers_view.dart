@@ -61,8 +61,9 @@ RxString get peerSort {
   return _peerSort!;
 }
 
-// list for listener
-RxList<RxString> get obslist => [peerSearchText, peerSort].obs;
+// list for listener（顺序版本号变化触发重建，拖拽排序才能立即生效）
+RxList<RxString> get obslist =>
+    [peerSearchText, peerSort, peerOrderRevision].obs;
 
 final peerSearchTextController =
     TextEditingController(text: peerSearchText.value);
@@ -264,13 +265,38 @@ class _PeersViewState extends State<_PeersView>
             // Continious rebuilds of `ListView.builder` will cause memory leak.
             // Simple demo can reproduce this issue.
             final Widget child = Obx(() => stateGlobal.isPortrait.isTrue
-                ? ListView.builder(
-                    itemCount: peers.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return buildOnePeer(peers[index], true).marginOnly(
-                          top: index == 0 ? 0 : space / 2, bottom: space / 2);
-                    },
-                  )
+                ? (isMobile && peerManualSortMode.value)
+                    ? ReorderableListView.builder(
+                        itemCount: peers.length,
+                        buildDefaultDragHandles: false,
+                        proxyDecorator: (child, index, animation) => child,
+                        onReorder: (int oldIndex, int newIndex) {
+                          if (newIndex > oldIndex) newIndex--;
+                          final ids = peers.map((e) => e.id).toList();
+                          final moved = ids.removeAt(oldIndex);
+                          ids.insert(newIndex, moved);
+                          setPeerCustomOrder(widget.peerTabIndex, ids);
+                        },
+                        itemBuilder: (BuildContext context, int index) {
+                          final peer = peers[index];
+                          return KeyedSubtree(
+                            key: ValueKey(_cardId(peer.id)),
+                            child: ReorderableDelayedDragStartListener(
+                              index: index,
+                              child: buildOnePeer(peer, true).marginOnly(
+                                  top: index == 0 ? 0 : space / 2,
+                                  bottom: space / 2),
+                            ),
+                          );
+                        },
+                      )
+                    : ListView.builder(
+                        itemCount: peers.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return buildOnePeer(peers[index], true).marginOnly(
+                              top: index == 0 ? 0 : space / 2, bottom: space / 2);
+                        },
+                      )
                 : peerCardUiType.value == PeerUiType.list
                     ? ListView.builder(
                         controller: _scrollController,
@@ -303,7 +329,9 @@ class _PeersViewState extends State<_PeersView>
             );
           }
         },
-        future: matchPeers(filters[0].value, filters[1].value, peers.peers),
+        // filters[2]（排序/模式版本号）读取以订阅，变更后重建列表
+        future: matchPeers(filters[0].value, filters[1].value, peers.peers,
+            orderRevision: filters[2].value),
       );
     }, obslist);
 
@@ -358,8 +386,8 @@ class _PeersViewState extends State<_PeersView>
     }
   }
 
-  Future<List<Peer>>? matchPeers(
-      String searchText, String sortedBy, List<Peer> peers) async {
+  Future<List<Peer>>? matchPeers(String searchText, String sortedBy,
+      List<Peer> peers, {String? orderRevision}) async {
     if (widget.peerFilter != null) {
       peers = peers.where((peer) => widget.peerFilter!(peer)).toList();
     }
@@ -390,6 +418,27 @@ class _PeersViewState extends State<_PeersView>
           peers.sort((p1, p2) => p1.online ? -1 : 1);
           break;
       }
+    }
+
+    // 用户手动排序（每个 tab 独立保存）：按保存的 id 顺序排列，
+    // 未记录在顺序表里的机器（如新上线的）按当前顺序跟在后面。
+    final custom = getPeerCustomOrder(widget.peerTabIndex);
+    if (custom.isNotEmpty) {
+      final rank = <String, int>{};
+      for (var i = 0; i < custom.length; i++) {
+        rank[custom[i]] = i;
+      }
+      final sorted = <Peer>[];
+      final rest = <Peer>[];
+      for (final p in peers) {
+        if (rank.containsKey(p.id)) {
+          sorted.add(p);
+        } else {
+          rest.add(p);
+        }
+      }
+      sorted.sort((a, b) => rank[a.id]!.compareTo(rank[b.id]!));
+      peers = [...sorted, ...rest];
     }
 
     searchText = searchText.trim();
