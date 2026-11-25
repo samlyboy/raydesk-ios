@@ -143,21 +143,28 @@ jobs:
           rustup target add aarch64-apple-ios
           cargo build --locked --features flutter,hwcodec --release --target aarch64-apple-ios --lib
 
-      - name: Build Flutter IPA
+      - name: Build Flutter app (no codesign)
         shell: bash
         run: |
           cd flutter
-          flutter build ipa --release --no-codesign
+          flutter build ios --release --no-codesign
 
-      - name: Rename IPA
+      - name: Pack unsigned IPA
         shell: bash
         run: |
-          cp flutter/build/ios/ipa/*.ipa RayDesk-1.0.0-arm64.ipa
-          ls -lh RayDesk-1.0.0-arm64.ipa
+          set -euo pipefail
+          APP="flutter/build/ios/iphoneos/Runner.app"
+          test -d "$APP" || { echo "missing $APP"; exit 1; }
+          mkdir -p dist Payload
+          rm -rf Payload/Runner.app
+          cp -R "$APP" Payload/Runner.app
+          (cd Payload && zip -qry "../RayDesk-1.0.0-arm64.ipa" Runner.app)
+          mv RayDesk-1.0.0-arm64.ipa dist/RayDesk-1.0.0-arm64.ipa
+          ls -lh dist/RayDesk-1.0.0-arm64.ipa
 
       - name: Upload IPA
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: raydesk-ipa
-          path: RayDesk-1.0.0-arm64.ipa
+          path: dist/RayDesk-1.0.0-arm64.ipa
           if-no-files-found: error
