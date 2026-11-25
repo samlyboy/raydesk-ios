@@ -8,6 +8,7 @@ import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/mobile/widgets/floating_mouse.dart';
 import 'package:flutter_hbb/mobile/widgets/floating_mouse_widgets.dart';
 import 'package:flutter_hbb/mobile/widgets/gesture_help.dart';
+import 'package:flutter_hbb/mobile/widgets/scroll_ring.dart';
 import 'package:flutter_hbb/models/chat_model.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_svg/svg.dart';
@@ -767,6 +768,12 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
             paints.add(FloatingMouseWidgets(
               ffi: gFFI,
             ));
+          }
+          if (isIOS &&
+              !gFFI.ffiModel.isPeerAndroid &&
+              !gFFI.ffiModel.viewOnly &&
+              gFFI.ffiModel.keyboard) {
+            paints.add(ScrollRing(ffi: gFFI));
           }
           return paints;
         }()));
