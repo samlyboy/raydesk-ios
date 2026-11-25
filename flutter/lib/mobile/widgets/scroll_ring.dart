@@ -103,7 +103,7 @@ class _ScrollRingState extends State<ScrollRing> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final center = Offset(size.width / 2, max(180.0, size.height - 280));
+    final center = Offset(size.width / 2, max(180.0, size.height - 230));
     // 圆环缩到原来的 2/3：原 min(96, max(64, w*0.2))
     final radius = min(64.0, max(42.0, size.width * (0.2 * 2 / 3)));
 
@@ -132,14 +132,6 @@ class _ScrollRingState extends State<ScrollRing> {
                 ),
               ),
             ),
-            Positioned(
-              right: 18,
-              top: 18,
-              child: GestureDetector(
-                onTap: _hide,
-                child: const Icon(Icons.close, color: Colors.white70, size: 28),
-              ),
-            ),
           ],
         ),
       ),
@@ -163,13 +155,13 @@ class _ScrollRingPainter extends CustomPainter {
     final ring = Paint()
       ..color = Colors.grey.shade600
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 12;
+      ..strokeWidth = 24;
     canvas.drawCircle(center, radius, ring);
 
     final dot = Paint()..color = _accent;
     canvas.drawCircle(
       center + Offset(radius * cos(angle), radius * sin(angle)),
-      9,
+      18,
       dot,
     );
   }
