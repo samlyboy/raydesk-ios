@@ -96,6 +96,8 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
   Orientation? _currentOrientation;
   final _uniqueKey = UniqueKey();
   Timer? _iosKeyboardWorkaroundTimer;
+  /// 底部工具栏触发滚轮圆环的信号，每次点击自增。
+  final ValueNotifier<int> _scrollRingOpen = ValueNotifier<int>(0);
 
   final _blockableOverlayState = BlockableOverlayState();
 
@@ -678,6 +680,20 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
                                             : onPressedTextChat(widget.id),
                                   ))
                         ]) +
+                  // 滚轮圆环按钮：放在「三个点」左边，与工具栏图标同款同尺寸。
+                  (isIOS &&
+                          !ffiModel.isPeerAndroid &&
+                          !ffiModel.viewOnly &&
+                          ffiModel.keyboard
+                      ? [
+                          IconButton(
+                            color: Colors.white,
+                            icon: const Icon(Icons.rotate_right),
+                            tooltip: '滚轮圆环',
+                            onPressed: () => _scrollRingOpen.value++,
+                          ),
+                        ]
+                      : []) +
                   [
                     IconButton(
                       color: Colors.white,
@@ -773,7 +789,7 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
               !gFFI.ffiModel.isPeerAndroid &&
               !gFFI.ffiModel.viewOnly &&
               gFFI.ffiModel.keyboard) {
-            paints.add(ScrollRing(ffi: gFFI));
+            paints.add(ScrollRing(ffi: gFFI, openSignal: _scrollRingOpen));
           }
           return paints;
         }()));
