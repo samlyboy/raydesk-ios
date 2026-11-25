@@ -111,36 +111,34 @@ class _ScrollRingState extends State<ScrollRing> {
     );
   }
 
-  void _onDown(PointerDownEvent e, Offset center, double radius) {
+  void _onDown(Offset p, Offset center, double radius) {
     final arrows = _arrowRects(center, radius);
-    if (arrows[0].contains(e.position)) {
+    if (arrows[0].contains(p)) {
       _ignorePointerUp = true;
       _pressedArrowKey = 'VK_UP';
       return;
     }
-    if (arrows[1].contains(e.position)) {
+    if (arrows[1].contains(p)) {
       _ignorePointerUp = true;
       _pressedArrowKey = 'VK_DOWN';
       return;
     }
     _ignorePointerUp = false;
     _pressedArrowKey = null;
-    final distance = (e.position - center).distance;
+    final distance = (p - center).distance;
     if ((distance - radius).abs() > 47) {
       _hide();
       return;
     }
-    final snapped =
-        (_rawAngle(e.position, center) / _stepAngle).round() * _stepAngle;
+    final snapped = (_rawAngle(p, center) / _stepAngle).round() * _stepAngle;
     _lastAngle = snapped;
     setState(() => _pointerAngle = snapped);
   }
 
-  void _onMove(PointerMoveEvent e, Offset center) {
+  void _onMove(Offset p, Offset center) {
     final last = _lastAngle;
     if (last == null) return;
-    final snapped =
-        (_rawAngle(e.position, center) / _stepAngle).round() * _stepAngle;
+    final snapped = (_rawAngle(p, center) / _stepAngle).round() * _stepAngle;
     if (snapped == last) return;
 
     var delta = snapped - last;
@@ -167,16 +165,19 @@ class _ScrollRingState extends State<ScrollRing> {
     return Positioned.fill(
       child: Listener(
         behavior: HitTestBehavior.opaque,
-        onPointerDown: (e) => _onDown(e, center, radius),
-        onPointerMove: (e) => _onMove(e, center),
+        onPointerDown: (e) => _onDown(e.localPosition, center, radius),
+        onPointerMove: (e) => _onMove(e.localPosition, center),
         onPointerUp: (e) {
           if (_ignorePointerUp) {
             final key = _pressedArrowKey;
             _ignorePointerUp = false;
             _pressedArrowKey = null;
             // 只在按下的同一个按钮内抬起才发送，防止误触。
-            if (key != null && _onArrow(e.position, center, radius)) {
-              final expected = e.position.dy < center.dy ? 'VK_UP' : 'VK_DOWN';
+            // 必须用 localPosition：Listener 在 SafeArea 内，e.position 是全局坐标，
+            // 会和 Positioned 的局部坐标差一个顶部安全区高度，导致按键判定整体上移。
+            if (key != null && _onArrow(e.localPosition, center, radius)) {
+              final expected =
+                  e.localPosition.dy < center.dy ? 'VK_UP' : 'VK_DOWN';
               if (key == expected) _sendArrowKey(key);
             }
             return;
