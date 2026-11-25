@@ -2035,6 +2035,9 @@ class ImageModel with ChangeNotifier {
     final size = parent.target!.canvasModel.getSize();
     final xscale = size.width / _image!.width;
     final yscale = size.height / _image!.height;
+    // 竖屏：缩小到远程画面宽度恰好等于手机屏幕宽度，不再继续缩小。
+    // 横屏：保持官方原样（可缩到适配尺寸的 1/1.5）。
+    if (size.height > size.width) return xscale;
     return min(xscale, yscale) / 1.5;
   }
 
