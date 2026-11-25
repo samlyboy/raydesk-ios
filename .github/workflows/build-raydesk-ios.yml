@@ -155,16 +155,18 @@ jobs:
           set -euo pipefail
           APP="flutter/build/ios/iphoneos/Runner.app"
           test -d "$APP" || { echo "missing $APP"; exit 1; }
+          VER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' flutter/ios/Runner/Info.plist)
+          BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' flutter/ios/Runner/Info.plist)
+          IPA="dist/RayDesk-v${VER}-b${BUILD}-arm64.ipa"
+          rm -rf Payload
           mkdir -p dist Payload
-          rm -rf Payload/Runner.app
           cp -R "$APP" Payload/Runner.app
-          (cd Payload && zip -qry "../RayDesk-1.0.0-arm64.ipa" Runner.app)
-          mv RayDesk-1.0.0-arm64.ipa dist/RayDesk-1.0.0-arm64.ipa
-          ls -lh dist/RayDesk-1.0.0-arm64.ipa
+          zip -qry "$IPA" Payload
+          ls -lh "$IPA"
 
       - name: Upload IPA
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: raydesk-ipa
-          path: dist/RayDesk-1.0.0-arm64.ipa
+          path: dist/RayDesk-v*-arm64.ipa
           if-no-files-found: error
