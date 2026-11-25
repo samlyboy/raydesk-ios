@@ -612,6 +612,11 @@ abstract class BasePeerCard extends StatelessWidget {
     if (isWindows && peer.platform == kPeerPlatformWindows) {
       menuItems.add(_rdpAction(context, peer.id));
     }
+    // Remote power actions (mobile only; desktop controlled side has its own toolbar entry).
+    if (isMobile) {
+      menuItems.add(_powerAction(context, kPowerActionShutdown, '关机'));
+      menuItems.add(_powerAction(context, kPowerActionRestart, '重启'));
+    }
     menuItems.add(MenuEntryDivider<String>());
     menuItems.add(_requestApprovalAction(context));
     // menuItems.add(await _openNewConnInOptAction(peer.id));
@@ -619,6 +624,62 @@ abstract class BasePeerCard extends StatelessWidget {
       menuItems.add(await _forceAlwaysRelayAction(peer.id));
     }
     return menuItems;
+  }
+
+  /// 列表菜单「关机/重启」：先弹确认面板，确认后建会话自动执行并断开。
+  /// 重启走原生 RestartRemoteDevice；关机走终端会话发 shutdown 命令。
+  MenuEntryButton<String> _powerAction(
+      BuildContext context, String action, String label) {
+    return MenuEntryButton<String>(
+      childBuilder: (TextStyle? style) => Text(label, style: style),
+      proc: () => _showPowerConfirmDialog(context, action, label),
+      padding: menuPadding,
+      dismissOnClicked: true,
+    );
+  }
+
+  void _showPowerConfirmDialog(
+      BuildContext context, String action, String label) {
+    final peerName = peer.alias.isNotEmpty ? peer.alias : peer.getId();
+    gFFI.dialogManager.show((setState, close, dialogContext) {
+      return CustomAlertDialog(
+        title: Row(children: [
+          const Icon(Icons.power_settings_new_rounded,
+              color: Colors.redAccent, size: 28),
+          Flexible(child: Text('远程$label').paddingOnly(left: 10)),
+        ]),
+        content: Text('确定要远程$label「$peerName」吗？\n此操作将无法撤销。'),
+        actions: [
+          dialogButton('取消',
+              icon: const Icon(Icons.close_rounded),
+              onPressed: close,
+              isOutline: true),
+          dialogButton('确定$label',
+              icon: const Icon(Icons.power_settings_new_rounded),
+              onPressed: () {
+                close();
+                _runPowerAction(context, action);
+              }),
+        ],
+        onCancel: close,
+        onSubmit: () {
+          close();
+          _runPowerAction(context, action);
+        },
+        // 用外层菜单 context 推页面，不用 dialogContext（close 后失效）
+      );
+    });
+  }
+
+  void _runPowerAction(BuildContext context, String action) {
+    final isShutdown = action == kPowerActionShutdown;
+    connectInPeerTab(
+      context,
+      peer,
+      tab,
+      isTerminal: isShutdown,
+      autoPowerAction: action,
+    );
   }
 
   MenuEntryButton<String> _connectCommonAction(
@@ -1590,7 +1651,8 @@ void connectInPeerTab(BuildContext context, Peer peer, PeerTabIndex tab,
     bool isTcpTunneling = false,
     bool isRDP = false,
     bool isTerminal = false,
-    String loginMethod = ''}) async {
+    String loginMethod = '',
+    String autoPowerAction = ''}) async {
   var password = '';
   bool isSharedPassword = false;
   if (tab == PeerTabIndex.ab) {
@@ -1625,5 +1687,6 @@ void connectInPeerTab(BuildContext context, Peer peer, PeerTabIndex tab,
       isTerminal: isTerminal,
       isViewCamera: isViewCamera,
       isTcpTunneling: isTcpTunneling,
-      isRDP: isRDP);
+      isRDP: isRDP,
+      autoPowerAction: autoPowerAction);
 }
