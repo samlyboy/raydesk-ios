@@ -86,13 +86,13 @@ class _ScrollRingState extends State<ScrollRing> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final center = Offset(size.width / 2, max(160.0, size.height - 200));
+    final center = Offset(size.width / 2, max(180.0, size.height - 280));
     final radius = min(96.0, max(64.0, size.width * 0.2));
 
     if (!_open) {
       return Positioned(
         right: 14,
-        bottom: 18,
+        bottom: 88,
         child: Semantics(
           button: true,
           label: '滚轮圆环',
@@ -134,14 +134,6 @@ class _ScrollRingState extends State<ScrollRing> {
                   radius: radius,
                   angle: _pointerAngle,
                 ),
-              ),
-            ),
-            Positioned(
-              left: center.dx - 90,
-              top: center.dy - radius - 62,
-              child: const Text(
-                '顺时针下滚 · 逆时针上滚',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
               ),
             ),
             Positioned(
