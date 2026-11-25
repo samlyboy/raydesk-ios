@@ -163,6 +163,7 @@ const String kOptionAllowMultiEdgeToolbarDock =
 const String kOptionHideAbTagsPanel = "hideAbTagsPanel";
 const String kOptionRemoteMenubarState = "remoteMenubarState";
 const String kOptionPeerSorting = "peer-sorting";
+const String kOptionPeerCustomOrderPrefix = "peer-custom-order-";
 const String kOptionPeerTabIndex = "peer-tab-index";
 const String kOptionPeerTabOrder = "peer-tab-order";
 const String kOptionPeerTabVisible = "peer-tab-visible";
