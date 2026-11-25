@@ -88,6 +88,10 @@ class TerminalModel with ChangeNotifier {
   /// The listener (typically TerminalPage) can use this to auto-close the tab/page.
   VoidCallback? onClosed;
 
+  /// Called once when the remote terminal is opened successfully.
+  /// Used by power actions (e.g. remote shutdown) to send a command on open.
+  VoidCallback? onOpened;
+
   ValueChanged<String>? onClipboardWriteBlocked;
   ValueChanged<String>? onClipboardWriteSucceeded;
 
@@ -440,6 +444,9 @@ class TerminalModel with ChangeNotifier {
           terminal.viewHeight > 0) {
         _scheduleMarkViewReady();
       }
+
+      // Power action (e.g. remote shutdown): send command as soon as terminal is ready.
+      onOpened?.call();
 
       // Process any buffered input
       _processBufferedInputAsync().then((_) {
