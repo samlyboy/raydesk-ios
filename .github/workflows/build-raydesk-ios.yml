@@ -155,8 +155,9 @@ jobs:
           set -euo pipefail
           APP="flutter/build/ios/iphoneos/Runner.app"
           test -d "$APP" || { echo "missing $APP"; exit 1; }
-          VER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' flutter/ios/Runner/Info.plist)
-          BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' flutter/ios/Runner/Info.plist)
+          # 读构建产物里的 Info.plist（源文件里还是 $(FLUTTER_BUILD_*) 占位符）
+          VER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")
+          BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")
           IPA="dist/RayDesk-v${VER}-b${BUILD}-arm64.ipa"
           rm -rf Payload
           mkdir -p dist Payload
