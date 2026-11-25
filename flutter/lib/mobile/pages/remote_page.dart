@@ -75,7 +75,8 @@ class RemotePage extends StatefulWidget {
       this.loginMethod = '',
       this.password,
       this.isSharedPassword,
-      this.forceRelay})
+      this.forceRelay,
+      this.autoPowerAction = ''})
       : super(key: key);
 
   final String id;
@@ -83,6 +84,7 @@ class RemotePage extends StatefulWidget {
   final String? password;
   final bool? isSharedPassword;
   final bool? forceRelay;
+  final String autoPowerAction;
 
   @override
   State<RemotePage> createState() => _RemotePageState(id);
@@ -109,6 +111,8 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
 
   Worker? _waylandKeyboardGateWorker;
   bool _waylandKeyboardGateInitialized = false;
+  /// 列表菜单「重启」自动动作：连接建立后发原生重启消息再返回列表。
+  Worker? _powerActionWorker;
 
   InputModel get inputModel => gFFI.inputModel;
   SessionID get sessionId => gFFI.sessionId;
@@ -185,6 +189,27 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
     if (gFFI.ffiModel.pi.isSet.value) {
       _initWaylandKeyboardGateIfNeeded();
     }
+
+    // Remote restart from peer list: send native restart once connected,
+    // then pop back to the list. (Power-off uses TerminalPage instead.)
+    if (widget.autoPowerAction == kPowerActionRestart) {
+      void doRestart() {
+        _powerActionWorker?.dispose();
+        _powerActionWorker = null;
+        bind.sessionRestartRemoteDevice(sessionId: sessionId);
+        showToast(translate('Restarting remote device'));
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+        });
+      }
+      if (gFFI.ffiModel.pi.isSet.value) {
+        doRestart();
+      } else {
+        _powerActionWorker = ever(gFFI.ffiModel.pi.isSet, (bool isSet) {
+          if (isSet) doRestart();
+        });
+      }
+    }
   }
 
   @override
@@ -210,6 +235,7 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
     _physicalFocusNode.dispose();
     clearWaylandKeyboardPromptSuppressedForConnection(sessionId.toString());
     _waylandKeyboardGateWorker?.dispose();
+    _powerActionWorker?.dispose();
     inputModel.keyboardInputAllowed = true;
     await gFFI.close();
     _timer?.cancel();
