@@ -72,9 +72,11 @@ class TerminalPage extends StatefulWidget {
     this.forceRelay,
     this.connToken,
     this.loginMethod = '',
+    this.autoPowerAction = '',
   }) : super(key: key);
   final String id;
   final String loginMethod;
+  final String autoPowerAction;
   final String? password;
   final bool? forceRelay;
   final bool? isSharedPassword;
@@ -174,6 +176,25 @@ class _TerminalPageState extends State<TerminalPage>
         closeConnection(id: widget.id);
       }
     };
+
+    // Remote shutdown from peer list: send poweroff command once terminal is ready,
+    // then close the session so the app returns to the list.
+    if (widget.autoPowerAction == kPowerActionShutdown) {
+      _terminalModel.onOpened = () {
+        final platform = _ffi.ffiModel.pi.platform;
+        final cmd = platform == kPeerPlatformWindows
+            ? 'shutdown /s /t 0\r'
+            : 'shutdown -h now\r';
+        _terminalModel.sendVirtualKey(cmd);
+        // Give the command a moment to reach the peer, then close the session.
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            closeConnection(id: widget.id);
+            if (Navigator.canPop(context)) Navigator.pop(context);
+          }
+        });
+      };
+    }
 
     // Web desktop users have full hardware keyboard access, so the on-screen
     // terminal extra keys bar is unnecessary and disabled.
