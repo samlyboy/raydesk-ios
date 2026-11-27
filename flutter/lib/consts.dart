@@ -168,6 +168,7 @@ const String kPowerActionShutdown = "power-shutdown";
 
 const String kOptionPeerSorting = "peer-sorting";
 const String kOptionPeerCustomOrderPrefix = "peer-custom-order-";
+const String kOptionPeerAvatarPrefix = "peer-avatar-";
 const String kOptionPeerTabIndex = "peer-tab-index";
 const String kOptionPeerTabOrder = "peer-tab-order";
 const String kOptionPeerTabVisible = "peer-tab-visible";
