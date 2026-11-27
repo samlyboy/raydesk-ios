@@ -13,6 +13,7 @@ import '../../common.dart';
 import '../../common/formatter/id_formatter.dart';
 import '../../models/peer_model.dart';
 import '../../models/platform_model.dart';
+import 'peer_avatar.dart';
 import '../../desktop/widgets/material_mod_popup_menu.dart' as mod_menu;
 import '../../desktop/widgets/popup_menu.dart';
 import 'dart:math' as math;
@@ -157,13 +158,18 @@ class _PeerCardState extends State<_PeerCard>
                       bottomLeft: Radius.circular(_tileRadius),
                     ),
             ),
+            clipBehavior: Clip.antiAlias,
             alignment: Alignment.center,
             width: isPortrait ? 50 : 42,
             height: isPortrait ? 50 : null,
             child: Stack(
               children: [
-                getPlatformImage(peer.platform, size: isPortrait ? 38 : 30)
-                    .paddingAll(6),
+                buildPeerAvatar(
+                  peerId: peer.id,
+                  fallback: getPlatformImage(peer.platform,
+                          size: isPortrait ? 38 : 30)
+                      .paddingAll(6),
+                ),
                 if (_shouldBuildPasswordIcon(peer))
                   Positioned(
                     top: 1,
@@ -576,6 +582,11 @@ abstract class BasePeerCard extends StatelessWidget {
         dismissOnClicked: true,
       ));
       items.add(MenuEntryDivider<String>());
+      items.add(_setPeerAvatarAction());
+      if (hasPeerAvatar(peer.id)) {
+        items.add(_removePeerAvatarAction());
+      }
+      items.add(MenuEntryDivider<String>());
     }
     items.addAll(await _buildMenuItems(context));
     return items
@@ -587,6 +598,30 @@ abstract class BasePeerCard extends StatelessWidget {
                 dividerHeight: CustomPopupMenuTheme.dividerHeight)))
         .expand((i) => i)
         .toList();
+  }
+
+  MenuEntryBase<String> _setPeerAvatarAction() {
+    return MenuEntryButton<String>(
+      childBuilder: (TextStyle? style) => Text(
+        hasPeerAvatar(peer.id) ? '更换头像' : '设置头像',
+        style: style,
+      ),
+      proc: () => pickAndSetPeerAvatar(peer.id),
+      padding: menuPadding,
+      dismissOnClicked: true,
+    );
+  }
+
+  MenuEntryBase<String> _removePeerAvatarAction() {
+    return MenuEntryButton<String>(
+      childBuilder: (TextStyle? style) => Text(
+        '移除头像',
+        style: style?.copyWith(color: Colors.red),
+      ),
+      proc: () => removePeerAvatar(peer.id),
+      padding: menuPadding,
+      dismissOnClicked: true,
+    );
   }
 
   @protected
